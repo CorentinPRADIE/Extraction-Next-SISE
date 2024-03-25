@@ -1,0 +1,150 @@
+import streamlit as st
+import pandas as pd
+import dask.dataframe as dd
+import os
+from constantes import OPERATEURS, engagement_effect_id, dtype, columns_order
+from datetime import datetime
+import time
+
+
+st.set_page_config(
+    page_title="myFact_enr",
+    layout='wide'
+)
+
+st.session_state['DIR_IN'] = r"C:\Users\ADSL\Desktop\Dev Python\99. MyFact_enr\DIR_IN"
+st.session_state['DIR_OUT'] = r"C:\Users\ADSL\Desktop\Dev Python\99. MyFact_enr\DIR_OUT"
+
+def main():
+    st.write("# myFact_enr")
+    st.write('---')
+
+    st.write('### 1. Configuration')
+    
+    st.write("##### Dossiers d'entrée et de sortie")
+    st.session_state['DIR_IN'] = st.text_input('Dossier d\'entrée',  st.session_state['DIR_IN'])
+    st.session_state['DIR_OUT'] = st.text_input('Dossier de sortie', st.session_state['DIR_OUT'])
+    st.session_state['DIR_EXTRACT'] = os.path.join(st.session_state['DIR_OUT'], f'Fact_enr par actions {datetime.now().strftime('%d-%m-%Y')}')
+    
+    st.write(f"##### Télécharger et déposer les fichiers `fact_financiers_enr.csv` et `dim_projets.csv` dans le dossier : `{st.session_state['DIR_IN']}`") 
+    
+    st.session_state['FACT_ENR_FILE_NAME'] = st.selectbox('Nom du fichier `fact_financier_enr`:', sorted(list(os.listdir(st.session_state['DIR_IN'])), reverse=True))
+    st.session_state['DIM_PROJETS_FILE_NAME'] = st.selectbox('Nom du fichier `dim_projets`:', os.listdir(st.session_state['DIR_IN']))
+    
+    
+    
+    st.write('---')
+    
+    st.write('### 2. Options')
+    st.session_state['OPERATEURS'] = st.multiselect("Selections des opérateurs:", OPERATEURS, OPERATEURS)
+    st.session_state['uniquement_fin_conso'] = st.checkbox("Uniquement le financier consommation", True)
+    st.session_state['montants_non_nulles'] = st.checkbox("Uniquement les montants non nulles", True)
+    st.session_state['uniquement_engagements'] = st.checkbox("Uniquement les montants d'engagements", False)
+    
+    st.write('')
+    
+    
+    start = st.button("Start", type='primary', use_container_width=True)
+    st.write('')
+    st.write('')
+    if start:
+        path_fact_enr = os.path.join(st.session_state['DIR_IN'], st.session_state['FACT_ENR_FILE_NAME'])
+        path_dim_projets = os.path.join(st.session_state['DIR_IN'], st.session_state['DIM_PROJETS_FILE_NAME'])
+        with st.status("Chargement...", expanded=True) as status:
+            debut = time.perf_counter()
+            st.write('Chargement de la fact_enr...')
+            fact_enr = read_fact_enr(path_fact_enr)
+            
+            st.write('Chargement de la dim_projets...')
+            dim_projets = read_dim_projets(path_dim_projets)
+            st.write('Ajout du projet_nom et du projet_id_sise...')
+            fact_enr = join_dim_projets(fact_enr, dim_projets)
+            del dim_projets
+
+            split_by_operateur_and_actions(fact_enr)
+            fin = time.perf_counter()
+            temps_execution = fin - debut
+            hours = int(temps_execution // 3600)  
+            minutes = int((temps_execution % 3600) // 60)  
+            secondes = int(temps_execution % 60)  
+            
+            status.update(label=f"Les fichiers sont prets ! (en {hours}h {minutes}m {secondes}s)", state="complete", expanded=False)
+
+
+def read_fact_enr(path_fact_enr):
+    fact_enr = dd.read_csv(path_fact_enr, dtype=dtype, delimiter=';')
+    fact_enr = fact_enr [ fact_enr['operateur_id'].isin(st.session_state['OPERATEURS'])]
+    fact_enr['action_id'] = fact_enr['action_id'].fillna('Action nulle')
+    if st.session_state['montants_non_nulles']:
+        fact_enr = fact_enr [fact_enr['montant'] != 0]
+    if st.session_state['uniquement_engagements']:
+        fact_enr = fact_enr [fact_enr['effect_id'].isin(engagement_effect_id)]
+    return fact_enr
+# 1
+def read_dim_projets(path_dim_projets):
+    dim_projets = pd.read_csv(path_dim_projets, usecols=['projet_id', 'projet_id_sise', 'projet_nom'], delimiter=';')
+    dim_projets = dim_projets.drop_duplicates(subset=['projet_id'])
+    return dim_projets
+
+# 2
+def join_dim_projets(_fact_enr, _dim_projets):
+    _fact_enr = dd.merge(_fact_enr, _dim_projets, on='projet_id', how='left')
+    _fact_enr = _fact_enr[columns_order]
+    return _fact_enr
+
+#3
+def split_by_operateur_and_actions(_fact_enr):
+    st.write('Lister toutes les actions...')
+    action_ids = _fact_enr['action_id'].unique().compute().sort_values().values.tolist()
+    action_ids.append(action_ids[-1])
+
+    st.write("Creation d'un index sur action_id...")
+    _fact_enr = _fact_enr.set_index(
+        'action_id',
+        divisions=sorted(action_ids),
+    )
+    
+    def save_partition(partition_df, partition_number):
+        
+        if len(partition_df.columns) != 0:
+            action_id = partition_df.index.compute().unique().values[0]
+            dir_path = f'{st.session_state['DIR_EXTRACT']}/{action_id.split('_')[0].upper()}'
+            os.makedirs(dir_path, exist_ok=True)
+            file_path = f'{dir_path}/{action_id}.csv'
+            partition_df.sort_values(['projet_id', 'period_id', 'beneficiaire_id', 'effect_id'], na_position='last') \
+                .to_csv(file_path, sep=';', single_file=True, decimal=',')
+    npartitions = _fact_enr.npartitions
+
+    
+    bar = st.progress(0, text='Ecriture des fichiers par actions')
+
+    start_time = time.time()  
+    
+    for partition_number in range(npartitions):
+        
+        current_action = action_ids[partition_number]
+        
+        percentage_complete = (partition_number ) / (npartitions-1) * 100
+        
+       
+        elapsed_time = time.time() - start_time
+        estimated_total_time = elapsed_time / (partition_number + 1) * npartitions
+        remaining_time = estimated_total_time - elapsed_time
+        
+        remaining_hours, rem = divmod(remaining_time, 3600)
+        remaining_minutes, remaining_seconds = divmod(rem, 60)
+        
+        bar.progress(int(percentage_complete), f'Ecriture de `{current_action}.csv` ({partition_number+1}/{npartitions}) :\n Temps restant estimé {int(remaining_hours)}h {int(remaining_minutes)}m {int(remaining_seconds)}s')
+        
+        partition_df = _fact_enr.get_partition(partition_number)
+        size_gb = partition_df.memory_usage(deep=True).sum() / (1024**3)
+        print(f"Partition {current_action} size:", size_gb, "GB")
+        save_partition(partition_df, partition_number)
+
+    
+
+
+main()
+    
+
+
