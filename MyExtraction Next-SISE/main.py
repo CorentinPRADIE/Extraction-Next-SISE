@@ -58,8 +58,8 @@ def menu():
     
     st.write('#### 3. Verification')
 
-    st.write(f"dim_projets         : {' :white_check_mark: le fichier est bien déposé' if sum(1 for fichier in os.listdir(PATH_DIR_DIM_PROJETS) if fichier.endswith('.csv')) == 1 else ' :x: Verifier que le fichier est bien déposé et qu\'il n\'y ait qu\'un seul fichier'}")
-    st.write(f"fact_financiers_enr : {' :white_check_mark: le fichier est bien déposé' if sum(1 for fichier in os.listdir(PATH_DIR_FACT_ENR) if fichier.endswith('.csv')) == 1 else ':x: Verifier que le fichier est bien déposé et qu\'il n\'y ait qu\'un seul fichier'}")
+    st.write(f"dim_projets         : {' :white_check_mark: le fichier est bien déposé' if sum(1 for fichier in os.listdir(PATH_DIR_DIM_PROJETS) if fichier.endswith('.csv')) == 1 else ' :x: Verifier que le fichier est bien déposé et qu il n y ait qu un seul fichier'}")
+    st.write(f"fact_financiers_enr : {' :white_check_mark: le fichier est bien déposé' if sum(1 for fichier in os.listdir(PATH_DIR_FACT_ENR) if fichier.endswith('.csv')) == 1 else ':x: Verifier que le fichier est bien déposé et qu il n y ait qu un seul fichier'}")
     
     st.write('---')
     
