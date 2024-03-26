@@ -1,0 +1,8 @@
+1. Installer les packages necessaires a lancement de l'application
+Double clicker sur le fichier "Installation des packages.bat" dans le dossier "1. Installation"
+
+2. Ajouter le racourcis à la barre des taches
+
+Glisser et déposer le racourcis dans le dossier "2. Ajouter le raccourcis à la barre des taches" dans la barre des taches
+
+3. Double clicquer sur le racourcis pour ouvrir l'application
