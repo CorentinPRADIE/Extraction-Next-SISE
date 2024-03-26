@@ -124,7 +124,7 @@ def main():
                 hours, minutes, secondes = get_time(debut) 
 		# Met à jour le message de statut pour indiquer que le processus est terminé.
                 status.update(label=f"Les fichiers sont prets dans le dossier: `{st.session_state['DIR_OUT']}`(en {hours}h {minutes}m {secondes}s)", state="complete", expanded=False)
-                os.remove(PATH_FACT_ENR_parquet)
+                os.rmdir(PATH_FACT_ENR_parquet)
                
 
 # Crée le chemin du fichier Parquet de sortie avec un timestamp.
