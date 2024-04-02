@@ -1,0 +1,26 @@
+Il faut que le dossier "Python" soit installé sur le bureau.
+Si le dossier "Python" n'a pas été installé sur le bureau, suivre les étapes de la section "Ajouter Python et ses scripts au Path" à la fin de ce documment
+
+1. Ajouter Python au Path et Installer les packages necessaires a lancement de l'application
+1.A) Naviguer dans le dossier "1. Installation"
+1.B) Double cliquer sur "1. Ajouter Python et ses scripts au Path.bat"
+1.C) Double cliquer sur "2. Intaller les packages.bat"
+
+2. Ajouter le racourcis à la barre des taches
+
+Glisser et déposer le racourcis depuis le dossier "2. Ajouter le raccourcis à la barre des taches" dans la barre des taches.
+
+3. Double clicquer sur le racourcis pour ouvrir l'application
+
+
+
+
+----- Ajouter Python et ses scripts au Path ----
+Ces étapes sont necessaires seulement si le dossier Python n'a pas été installé sur le bureau.
+Il faut que les chemins des dossiers "Python" et "Python/Scripts" soient ajoutés a la variable d'environement utilisateur 'Path'
+Pour ajouter un chemin de dossier a la variable 'Path :
+1. Rechercher 'Path' dans la barre de recherche windows
+2. Cliquer sur "Modifier les variables d'environnement pour votre compte" (et non pour le systeme, car bloqué par la DSI)
+3. Une fenetre s'ouvre, cliquer sur la variable 'Path', puis le bouton modifier, 
+4. Cliquer sur le button 'Nouveau', coller le chemin du dossier d'intallation du dossier 'Python'
+5. Cliquer sur le button 'Nouveau', coller le chemin du dossier d'intallation du dossier 'Python/Scripts'
